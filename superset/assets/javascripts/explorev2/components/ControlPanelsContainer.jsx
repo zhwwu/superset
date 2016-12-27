@@ -24,14 +24,14 @@ class ControlPanelsContainer extends React.Component {
     const datasource_id = this.props.form_data.datasource;
     const datasource_type = this.props.datasource_type;
     if (datasource_id) {
-      this.props.actions.fetchFieldOptions(datasource_id, datasource_type);
+      this.props.actions.fetchDatasourceMetadata(datasource_id, datasource_type);
     }
   }
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.form_data.datasource !== this.props.form_data.datasource) {
       if (nextProps.form_data.datasource) {
-        this.props.actions.fetchFieldOptions(
+        this.props.actions.fetchDatasourceMetadata(
           nextProps.form_data.datasource, nextProps.datasource_type);
       }
     }

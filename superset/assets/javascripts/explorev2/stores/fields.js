@@ -31,7 +31,9 @@ export const fields = {
     label: 'Datasource',
     clearable: false,
     default: null,
-    choices: [],
+    mapStateToProps: state => ({
+      choices: state.datasources,
+    }),
     description: '',
   },
 
