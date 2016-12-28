@@ -7,6 +7,11 @@ export function setDatasourceType(datasourceType) {
   return { type: SET_DATASOURCE_TYPE, datasourceType };
 }
 
+export const SET_DATASOURCE = 'SET_DATASOURCE';
+export function setDatasource(datasource) {
+  return { type: SET_DATASOURCE, datasource };
+}
+
 export const FETCH_STARTED = 'FETCH_STARTED';
 export function fetchStarted() {
   return { type: FETCH_STARTED };
@@ -196,9 +201,4 @@ export function saveSlice(url) {
 export const UPDATE_CHART_STATUS = 'UPDATE_CHART_STATUS';
 export function updateChartStatus(status) {
   return { type: UPDATE_CHART_STATUS, status };
-}
-
-export const SET_DATASOURCE = 'SET_DATASOURCE';
-export function setDatasource(datasource) {
-  return { type: SET_DATASOURCE, datasource };
 }

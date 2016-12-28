@@ -34,7 +34,6 @@ export const fields = {
     mapStateToProps: (state) => ({
       choices: state.datasources || [],
     }),
-    clearable: false,
     description: '',
   },
 
@@ -44,7 +43,6 @@ export const fields = {
     clearable: false,
     default: 'table',
     choices: formatSelectOptions(Object.keys(visTypes)),
-    clearable: false,
     description: 'The type of visualization to display',
   },
 
