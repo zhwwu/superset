@@ -54,8 +54,8 @@ from sqlalchemy_utils import EncryptedType
 
 from superset import (
     app, db, db_engine_specs, get_session, utils, sm, import_util,
-    cast_form_data,
 )
+from superset.legacy import cast_form_data
 from superset.source_registry import SourceRegistry
 from superset.viz import viz_types
 from superset.jinja_context import get_template_processor
@@ -1360,12 +1360,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             col_obj = cols[col]
             if op in ('in', 'not in'):
                 splitted = FillterPattern.split(eq)[1::2]
-                values = [types.strip() for types in splitted]
-                # attempt to get the values type if they are not in quotes
-                if not col_obj.is_string:
-                    values = [ast.literal_eval(v) for v in values]
-                else:
-                    values = [v.replace("'", '').strip() for v in values]
+                values = [types.strip("'").strip('"') for types in splitted]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
