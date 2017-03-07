@@ -27,9 +27,9 @@ export const TIME_STAMP_OPTIONS = [
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
-export const fields = {
+export const controls = {
   datasource: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Datasource',
     isLoading: true,
     clearable: false,
@@ -48,7 +48,7 @@ export const fields = {
   },
 
   viz_type: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Visualization Type',
     clearable: false,
     default: 'table',
@@ -61,11 +61,12 @@ export const fields = {
   },
 
   metrics: {
-    type: 'SelectField',
+    type: 'SelectControl',
     multi: true,
     label: 'Metrics',
     validators: [v.nonEmpty],
-  default: field => field.choices && field.choices.length > 0 ? [field.choices[0][0]] : null,
+    default: control =>
+      control.choices && control.choices.length > 0 ? [control.choices[0][0]] : null,
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
@@ -73,7 +74,7 @@ export const fields = {
   },
 
   order_by_cols: {
-    type: 'SelectField',
+    type: 'SelectControl',
     multi: true,
     label: 'Ordering',
     default: [],
@@ -84,18 +85,19 @@ export const fields = {
   },
 
   metric: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Metric',
     clearable: false,
     description: 'Choose the metric',
-    default: field => field.choices && field.choices.length > 0 ? field.choices[0][0] : null,
+    default: control =>
+      control.choices && control.choices.length > 0 ? control.choices[0][0] : null,
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.metrics_combo : null,
     }),
   },
 
   metric_2: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Right Axis Metric',
     choices: [],
     default: [],
@@ -106,7 +108,7 @@ export const fields = {
   },
 
   stacked_style: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Stacked Style',
     choices: [
       ['stack', 'stack'],
@@ -118,7 +120,7 @@ export const fields = {
   },
 
   linear_color_scheme: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Linear Color Scheme',
     choices: [
       ['fire', 'fire'],
@@ -131,7 +133,7 @@ export const fields = {
   },
 
   normalize_across: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Normalize Across',
     choices: [
       ['heatmap', 'heatmap'],
@@ -145,7 +147,7 @@ export const fields = {
   },
 
   horizon_color_scale: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Horizon Color Scale',
     choices: [
       ['series', 'series'],
@@ -157,7 +159,7 @@ export const fields = {
   },
 
   canvas_image_rendering: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Rendering',
     choices: [
       ['pixelated', 'pixelated (Sharp)'],
@@ -169,7 +171,7 @@ export const fields = {
   },
 
   xscale_interval: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'XScale Interval',
     choices: formatSelectOptionsForRange(1, 50),
     default: '1',
@@ -178,7 +180,7 @@ export const fields = {
   },
 
   yscale_interval: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'YScale Interval',
     choices: formatSelectOptionsForRange(1, 50),
     default: null,
@@ -186,8 +188,15 @@ export const fields = {
                  'displaying the Y scale',
   },
 
+  include_time: {
+    type: 'CheckboxControl',
+    label: 'Include Time',
+    description: 'Whether to include the time granularity as defined in the time section',
+    default: false,
+  },
+
   bar_stacked: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Stacked Bars',
     renderTrigger: true,
     default: false,
@@ -195,7 +204,7 @@ export const fields = {
   },
 
   show_markers: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Show Markers',
     renderTrigger: true,
     default: false,
@@ -203,7 +212,7 @@ export const fields = {
   },
 
   show_bar_value: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Bar Values',
     default: false,
     renderTrigger: true,
@@ -211,14 +220,14 @@ export const fields = {
   },
 
   order_bars: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Sort Bars',
     default: false,
     description: 'Sort bars by x labels.',
   },
 
   show_controls: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Extra Controls',
     renderTrigger: true,
     default: false,
@@ -228,7 +237,7 @@ export const fields = {
   },
 
   reduce_x_ticks: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Reduce X ticks',
     renderTrigger: true,
     default: false,
@@ -240,7 +249,7 @@ export const fields = {
   },
 
   include_series: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Include Series',
     renderTrigger: true,
     default: false,
@@ -248,7 +257,7 @@ export const fields = {
   },
 
   secondary_metric: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Color Metric',
     default: null,
     description: 'A metric to use for color',
@@ -258,7 +267,7 @@ export const fields = {
   },
 
   country_fieldtype: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Country Field Type',
     default: 'cca2',
     choices: [
@@ -272,29 +281,29 @@ export const fields = {
   },
 
   groupby: {
-    type: 'SelectField',
+    type: 'SelectControl',
     multi: true,
     label: 'Group by',
     default: [],
-    description: 'One or many fields to group by',
+    description: 'One or many controls to group by',
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.gb_cols : [],
     }),
   },
 
   columns: {
-    type: 'SelectField',
+    type: 'SelectControl',
     multi: true,
     label: 'Columns',
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.gb_cols : [],
     }),
     default: [],
-    description: 'One or many fields to pivot as columns',
+    description: 'One or many controls to pivot as columns',
   },
 
   all_columns: {
-    type: 'SelectField',
+    type: 'SelectControl',
     multi: true,
     label: 'Columns',
     default: [],
@@ -305,7 +314,7 @@ export const fields = {
   },
 
   all_columns_x: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'X',
     default: null,
     description: 'Columns to display',
@@ -315,7 +324,7 @@ export const fields = {
   },
 
   all_columns_y: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Y',
     default: null,
     description: 'Columns to display',
@@ -325,7 +334,7 @@ export const fields = {
   },
 
   druid_time_origin: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Origin',
     choices: [
@@ -338,7 +347,7 @@ export const fields = {
   },
 
   bottom_margin: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Bottom Margin',
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
@@ -347,7 +356,7 @@ export const fields = {
   },
 
   granularity: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Time Granularity',
     default: 'one day',
@@ -372,7 +381,7 @@ export const fields = {
   },
 
   domain_granularity: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Domain',
     default: 'month',
     choices: formatSelectOptions(['hour', 'day', 'week', 'month', 'year']),
@@ -380,7 +389,7 @@ export const fields = {
   },
 
   subdomain_granularity: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Subdomain',
     default: 'day',
     choices: formatSelectOptions(['min', 'hour', 'day', 'week', 'month']),
@@ -389,7 +398,7 @@ export const fields = {
   },
 
   link_length: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Link Length',
     default: '200',
@@ -398,7 +407,7 @@ export const fields = {
   },
 
   charge: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Charge',
     default: '-500',
@@ -418,9 +427,10 @@ export const fields = {
   },
 
   granularity_sqla: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Time Column',
-    default: field => field.choices && field.choices.length > 0 ? field.choices[0][0] : null,
+    default: control =>
+      control.choices && control.choices.length > 0 ? control.choices[0][0] : null,
     description: 'The time column for the visualization. Note that you ' +
                  'can define arbitrary expression that return a DATETIME ' +
                  'column in the table or. Also note that the ' +
@@ -432,9 +442,9 @@ export const fields = {
   },
 
   time_grain_sqla: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Time Grain',
-    default: field => field.choices && field.choices.length ? field.choices[0][0] : null,
+    default: control => control.choices && control.choices.length ? control.choices[0][0] : null,
     description: 'The time granularity for the visualization. This ' +
                  'applies a date transformation to alter ' +
                  'your time column and defines a new time granularity. ' +
@@ -446,7 +456,7 @@ export const fields = {
   },
 
   resample_rule: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Resample Rule',
     default: null,
@@ -455,7 +465,7 @@ export const fields = {
   },
 
   resample_how: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Resample How',
     default: null,
@@ -464,7 +474,7 @@ export const fields = {
   },
 
   resample_fillmethod: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Resample Fill Method',
     default: null,
@@ -473,7 +483,7 @@ export const fields = {
   },
 
   since: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Since',
     default: '7 days ago',
@@ -492,7 +502,7 @@ export const fields = {
   },
 
   until: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Until',
     default: 'now',
@@ -507,7 +517,7 @@ export const fields = {
   },
 
   max_bubble_size: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Max Bubble Size',
     default: '25',
@@ -515,7 +525,7 @@ export const fields = {
   },
 
   whisker_options: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Whisker/outlier options',
     default: 'Tukey',
@@ -529,7 +539,7 @@ export const fields = {
   },
 
   treemap_ratio: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Ratio',
     isFloat: true,
     default: 0.5 * (1 + Math.sqrt(5)),  // d3 default, golden ratio
@@ -537,7 +547,7 @@ export const fields = {
   },
 
   number_format: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Number format',
     default: D3_TIME_FORMAT_OPTIONS[0],
@@ -546,7 +556,7 @@ export const fields = {
   },
 
   row_limit: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Row limit',
     default: null,
@@ -554,7 +564,7 @@ export const fields = {
   },
 
   limit: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Series limit',
     choices: formatSelectOptions(SERIES_LIMITS),
@@ -563,7 +573,7 @@ export const fields = {
   },
 
   timeseries_limit_metric: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Sort By',
     default: null,
     description: 'Metric used to define the top series',
@@ -573,7 +583,7 @@ export const fields = {
   },
 
   rolling_type: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Rolling',
     default: 'None',
     choices: formatSelectOptions(['None', 'mean', 'sum', 'std', 'cumsum']),
@@ -582,7 +592,7 @@ export const fields = {
   },
 
   rolling_periods: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Periods',
     isInt: true,
     description: 'Defines the size of the rolling window function, ' +
@@ -590,7 +600,7 @@ export const fields = {
   },
 
   series: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Series',
     default: null,
     description: 'Defines the grouping of entities. ' +
@@ -602,7 +612,7 @@ export const fields = {
   },
 
   entity: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Entity',
     default: null,
     description: 'This define the element to be plotted on the chart',
@@ -612,7 +622,7 @@ export const fields = {
   },
 
   x: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'X Axis',
     default: null,
     description: 'Metric assigned to the [X] axis',
@@ -622,7 +632,7 @@ export const fields = {
   },
 
   y: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Y Axis',
     default: null,
     description: 'Metric assigned to the [Y] axis',
@@ -632,7 +642,7 @@ export const fields = {
   },
 
   size: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Bubble Size',
     default: null,
     mapStateToProps: (state) => ({
@@ -641,29 +651,29 @@ export const fields = {
   },
 
   url: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'URL',
-    description: 'The URL, this field is templated, so you can integrate ' +
+    description: 'The URL, this control is templated, so you can integrate ' +
                  '{{ width }} and/or {{ height }} in your URL string.',
     default: 'https: //www.youtube.com/embed/JkI5rg_VcQ4',
   },
 
   x_axis_label: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'X Axis Label',
     renderTrigger: true,
     default: '',
   },
 
   y_axis_label: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Y Axis Label',
     renderTrigger: true,
     default: '',
   },
 
   where: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Custom WHERE clause',
     default: '',
     description: 'The text in this box gets included in your query\'s WHERE ' +
@@ -673,7 +683,7 @@ export const fields = {
   },
 
   having: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Custom HAVING clause',
     default: '',
     description: 'The text in this box gets included in your query\'s HAVING ' +
@@ -683,20 +693,20 @@ export const fields = {
   },
 
   compare_lag: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Comparison Period Lag',
     isInt: true,
     description: 'Based on granularity, number of time periods to compare against',
   },
 
   compare_suffix: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Comparison suffix',
     description: 'Suffix to apply after the percentage display',
   },
 
   table_timestamp_format: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Table Timestamp Format',
     default: 'smart_date',
@@ -705,7 +715,7 @@ export const fields = {
   },
 
   series_height: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Series Height',
     default: '25',
@@ -714,7 +724,7 @@ export const fields = {
   },
 
   page_length: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Page Length',
     default: 0,
@@ -723,7 +733,7 @@ export const fields = {
   },
 
   x_axis_format: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'X axis format',
     renderTrigger: true,
@@ -733,7 +743,7 @@ export const fields = {
   },
 
   y_axis_format: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Y axis format',
     renderTrigger: true,
@@ -743,7 +753,7 @@ export const fields = {
   },
 
   y_axis_2_format: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Right axis format',
     default: '.3s',
@@ -752,7 +762,7 @@ export const fields = {
   },
 
   markup_type: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Markup Type',
     choices: formatSelectOptions(['markdown', 'html']),
     default: 'markdown',
@@ -760,7 +770,7 @@ export const fields = {
   },
 
   rotation: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Rotation',
     choices: formatSelectOptions(['random', 'flat', 'square']),
     default: 'random',
@@ -768,7 +778,7 @@ export const fields = {
   },
 
   line_interpolation: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Line Style',
     renderTrigger: true,
     choices: formatSelectOptions(['linear', 'basis', 'cardinal',
@@ -778,7 +788,7 @@ export const fields = {
   },
 
   pie_label_type: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Label Type',
     default: 'key',
     choices: [
@@ -790,14 +800,14 @@ export const fields = {
   },
 
   code: {
-    type: 'TextAreaField',
+    type: 'TextAreaControl',
     label: 'Code',
     description: 'Put your code here',
     default: '',
   },
 
   pandas_aggfunc: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Aggregation function',
     clearable: false,
     choices: formatSelectOptions([
@@ -815,7 +825,7 @@ export const fields = {
   },
 
   size_from: {
-    type: 'TextField',
+    type: 'TextControl',
     isInt: true,
     label: 'Font Size From',
     default: '20',
@@ -823,15 +833,26 @@ export const fields = {
   },
 
   size_to: {
-    type: 'TextField',
+    type: 'TextControl',
     isInt: true,
     label: 'Font Size To',
     default: '150',
     description: 'Font size for the biggest value in the list',
   },
 
+  instant_filtering: {
+    type: 'CheckboxControl',
+    label: 'Instant Filtering',
+    renderTrigger: true,
+    default: true,
+    description: (
+      'Whether to apply filters as they change, or wait for' +
+      'users to hit an [Apply] button'
+    ),
+  },
+
   show_brush: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Range Filter',
     renderTrigger: true,
     default: false,
@@ -839,21 +860,21 @@ export const fields = {
   },
 
   date_filter: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Date Filter',
     default: false,
     description: 'Whether to include a time filter',
   },
 
   show_datatable: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Data Table',
     default: false,
     description: 'Whether to display the interactive data table',
   },
 
   include_search: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Search Box',
     renderTrigger: true,
     default: false,
@@ -861,14 +882,14 @@ export const fields = {
   },
 
   table_filter: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Table Filter',
     default: false,
     description: 'Whether to apply filter when table cell is clicked',
   },
 
   show_bubbles: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Show Bubbles',
     default: false,
     renderTrigger: true,
@@ -876,7 +897,7 @@ export const fields = {
   },
 
   show_legend: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Legend',
     renderTrigger: true,
     default: true,
@@ -884,7 +905,7 @@ export const fields = {
   },
 
   x_axis_showminmax: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'X bounds',
     renderTrigger: true,
     default: true,
@@ -892,7 +913,7 @@ export const fields = {
   },
 
   rich_tooltip: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Rich Tooltip',
     renderTrigger: true,
     default: true,
@@ -901,7 +922,7 @@ export const fields = {
   },
 
   y_axis_zero: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Y Axis Zero',
     default: false,
     renderTrigger: true,
@@ -909,7 +930,7 @@ export const fields = {
   },
 
   y_log_scale: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Y Log Scale',
     default: false,
     renderTrigger: true,
@@ -917,7 +938,7 @@ export const fields = {
   },
 
   x_log_scale: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'X Log Scale',
     default: false,
     renderTrigger: true,
@@ -925,28 +946,28 @@ export const fields = {
   },
 
   donut: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Donut',
     default: false,
     description: 'Do you want a donut or a pie?',
   },
 
   labels_outside: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Put labels outside',
     default: true,
     description: 'Put the labels outside the pie?',
   },
 
   contribution: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Contribution',
     default: false,
     description: 'Compute the contribution to the total',
   },
 
   num_period_compare: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Period Ratio',
     default: '',
     isInt: true,
@@ -955,7 +976,7 @@ export const fields = {
   },
 
   period_ratio_type: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Period Ratio Type',
     default: 'growth',
     choices: formatSelectOptions(['factor', 'growth', 'value']),
@@ -964,7 +985,7 @@ export const fields = {
   },
 
   time_compare: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Time Shift',
     default: null,
     description: 'Overlay a timeseries from a ' +
@@ -974,13 +995,13 @@ export const fields = {
   },
 
   subheader: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Subheader',
     description: 'Description text that shows up below your Big Number',
   },
 
   mapbox_label: {
-    type: 'SelectField',
+    type: 'SelectControl',
     multi: true,
     label: 'label',
     default: [],
@@ -994,7 +1015,7 @@ export const fields = {
   },
 
   mapbox_style: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Map Style',
     choices: [
         ['mapbox://styles/mapbox/streets-v9', 'Streets'],
@@ -1009,7 +1030,7 @@ export const fields = {
   },
 
   clustering_radius: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'Clustering Radius',
     default: '60',
@@ -1030,7 +1051,7 @@ export const fields = {
   },
 
   point_radius: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Point Radius',
     default: 'Auto',
     description: 'The radius of individual points (ones that are not in a cluster). ' +
@@ -1042,7 +1063,7 @@ export const fields = {
   },
 
   point_radius_unit: {
-    type: 'SelectField',
+    type: 'SelectControl',
     label: 'Point Radius Unit',
     default: 'Pixels',
     choices: formatSelectOptions(['Pixels', 'Miles', 'Kilometers']),
@@ -1050,7 +1071,7 @@ export const fields = {
   },
 
   global_opacity: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Opacity',
     default: 1,
     isFloat: true,
@@ -1059,7 +1080,7 @@ export const fields = {
   },
 
   viewport_zoom: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Zoom',
     isFloat: true,
     default: 11,
@@ -1068,7 +1089,7 @@ export const fields = {
   },
 
   viewport_latitude: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Default latitude',
     default: 37.772123,
     isFloat: true,
@@ -1077,7 +1098,7 @@ export const fields = {
   },
 
   viewport_longitude: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Default longitude',
     default: -122.405293,
     isFloat: true,
@@ -1086,14 +1107,14 @@ export const fields = {
   },
 
   render_while_dragging: {
-    type: 'CheckboxField',
+    type: 'CheckboxControl',
     label: 'Live render',
     default: true,
     description: 'Points and clusters will update as viewport is being changed',
   },
 
   mapbox_color: {
-    type: 'SelectField',
+    type: 'SelectControl',
     freeForm: true,
     label: 'RGB Color',
     default: 'rgb(0, 122, 135)',
@@ -1109,49 +1130,49 @@ export const fields = {
   },
 
   ranges: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Ranges',
     default: '',
     description: 'Ranges to highlight with shading',
   },
 
   range_labels: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Range labels',
     default: '',
     description: 'Labels for the ranges',
   },
 
   markers: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Markers',
     default: '',
     description: 'List of values to mark with triangles',
   },
 
   marker_labels: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Marker labels',
     default: '',
     description: 'Labels for the markers',
   },
 
   marker_lines: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Marker lines',
     default: '',
     description: 'List of values to mark with lines',
   },
 
   marker_line_labels: {
-    type: 'TextField',
+    type: 'TextControl',
     label: 'Marker line labels',
     default: '',
     description: 'Labels for the marker lines',
   },
 
   filters: {
-    type: 'FilterField',
+    type: 'FilterControl',
     label: '',
     default: [],
     description: '',
@@ -1162,7 +1183,7 @@ export const fields = {
   },
 
   having_filters: {
-    type: 'FilterField',
+    type: 'FilterControl',
     label: '',
     default: [],
     description: '',
@@ -1174,10 +1195,10 @@ export const fields = {
   },
 
   slice_id: {
-    type: 'HiddenField',
+    type: 'HiddenControl',
     label: 'Slice ID',
     hidden: true,
     description: 'The id of the active slice',
   },
 };
-export default fields;
+export default controls;
