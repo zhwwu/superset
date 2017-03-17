@@ -14,7 +14,7 @@ import json
 import os
 
 from dateutil import tz
-from flask_appbuilder.security.manager import AUTH_DB
+from flask_appbuilder.security.manager import AUTH_DB, AUTH_CAS
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(os.path.expanduser('~'), '.superset')
@@ -93,7 +93,8 @@ DRUID_ANALYSIS_TYPES = ['cardinality']
 # AUTH_DB : Is for database (username/password()
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-AUTH_TYPE = AUTH_DB
+# AUTH_CAS : Is for CAS
+AUTH_TYPE = AUTH_CAS
 
 # Uncomment to setup Full admin role name
 # AUTH_ROLE_ADMIN = 'Admin'
@@ -116,6 +117,12 @@ AUTH_TYPE = AUTH_DB
 #    { 'name': 'AOL', 'url': 'http://openid.aol.com/<username>' },
 #    { 'name': 'Flickr', 'url': 'http://www.flickr.com/<username>' },
 #    { 'name': 'MyOpenID', 'url': 'https://www.myopenid.com' }]
+
+# Uncomment to setup CAS providers example for Huawei cloud IAM
+CAS_SERVER = 'https://auth.hwclouds.com'
+CAS_LOGIN_ROUTE = 'authui/login'
+CAS_VALIDATE_ROUTE = 'authui/serviceValidate'
+CAS_URL_REDIRECT_ROUTE = 'https://account.hwclouds.com/usercenter'
 
 # ---------------------------------------------------
 # Roles config
