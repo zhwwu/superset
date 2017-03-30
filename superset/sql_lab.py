@@ -1,8 +1,8 @@
 import celery
+from time import sleep
 from datetime import datetime
 import json
 import logging
-import numpy as np
 import pandas as pd
 import sqlalchemy
 import uuid
@@ -12,11 +12,12 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
 
 from superset import (
-    app, db, models, utils, dataframe, results_backend)
+    app, db, utils, dataframe, results_backend)
+from superset.models import core as models
 from superset.sql_parse import SupersetQuery
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
-QueryStatus = models.QueryStatus
+from superset.utils import QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
 
@@ -54,7 +55,16 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     else:
         session = db.session()
         session.commit()  # HACK
-    query = session.query(models.Query).filter_by(id=query_id).one()
+    try:
+        query = session.query(models.Query).filter_by(id=query_id).one()
+    except Exception as e:
+        logging.error("Query with id `{}` could not be retrieved".format(query_id))
+        logging.error("Sleeping for a sec and retrying...")
+        # Nasty hack to get around a race condition where the worker
+        # cannot find the query it's supposed to run
+        sleep(1)
+        query = session.query(models.Query).filter_by(id=query_id).one()
+
     database = query.database
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
@@ -104,11 +114,18 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         handle_error(msg)
 
     query.executed_sql = executed_sql
-    logging.info("Running query: \n{}".format(executed_sql))
+    query.status = QueryStatus.RUNNING
+    query.start_running_time = utils.now_as_float()
+    session.merge(query)
+    session.commit()
+    logging.info("Set query to 'running'")
+
     engine = database.get_sqla_engine(schema=query.schema)
     conn = engine.raw_connection()
     cursor = conn.cursor()
+    logging.info("Running query: \n{}".format(executed_sql))
     try:
+        logging.info(query.executed_sql)
         cursor.execute(
             query.executed_sql, **db_engine_spec.cursor_execute_kwargs)
     except Exception as e:
@@ -116,8 +133,6 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         conn.close()
         handle_error(db_engine_spec.extract_error_message(e))
 
-    query.status = QueryStatus.RUNNING
-    session.flush()
     try:
         logging.info("Handling cursor")
         db_engine_spec.handle_cursor(cursor, query, session)
@@ -131,12 +146,18 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     conn.commit()
     conn.close()
 
+    if query.status == utils.QueryStatus.STOPPED:
+        return json.dumps({
+            'query_id': query.id,
+            'status': query.status,
+            'query': query.to_dict(),
+        }, default=utils.json_iso_dttm_ser)
+
     column_names = (
         [col[0] for col in cursor.description] if cursor.description else [])
     column_names = dedup(column_names)
-    df_data = np.array(data) if data else []
     cdf = dataframe.SupersetDataFrame(pd.DataFrame(
-        df_data, columns=column_names))
+        list(data), columns=column_names))
 
     query.rows = cdf.size
     query.progress = 100
@@ -148,13 +169,14 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
             schema=database.force_ctas_schema
         ))
     query.end_time = utils.now_as_float()
+    session.merge(query)
     session.flush()
 
     payload = {
         'query_id': query.id,
         'status': query.status,
         'data': cdf.data if cdf.data else [],
-        'columns': cdf.columns_dict if cdf.columns_dict else {},
+        'columns': cdf.columns if cdf.columns else [],
         'query': query.to_dict(),
     }
     payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
@@ -165,7 +187,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         results_backend.set(key, zlib.compress(payload))
         query.results_key = key
 
-    session.flush()
+    session.merge(query)
     session.commit()
 
     if return_results:

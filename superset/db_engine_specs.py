@@ -17,19 +17,22 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from collections import namedtuple, defaultdict
-from superset import utils
 
 import inspect
+import logging
 import re
-import sqlparse
 import textwrap
 import time
 
-from superset import cache_util
+import sqlparse
 from sqlalchemy import select
 from sqlalchemy.sql import text
-from superset.utils import SupersetTemplateException
 from flask_babel import lazy_gettext as _
+
+from superset.utils import SupersetTemplateException
+from superset.utils import QueryStatus
+from superset import utils
+from superset import cache_util
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -41,6 +44,9 @@ class LimitMethod(object):
 
 
 class BaseEngineSpec(object):
+
+    """Abstract class for database engine specific configurations"""
+
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
     cursor_execute_kwargs = {}
     time_grains = tuple()
@@ -185,6 +191,29 @@ class PostgresEngineSpec(BaseEngineSpec):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
+class Db2EngineSpec(BaseEngineSpec):
+    engine = 'ibm_db_sa'
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('second', _('second'), 'SECOND({col})'),
+        Grain('minute', _('minute'), 'MINUTE({col})'),
+        Grain('hour', _('hour'), 'HOUR({col})'),
+        Grain('day', _('day'), 'DAY({col})'),
+        Grain('week', _('week'), 'WEEK({col})'),
+        Grain('month', _('month'), 'MONTH({col})'),
+        Grain('quarter', _('quarter'), 'QUARTER({col})'),
+        Grain('year', _('year'), 'YEAR({col})'),
+    )
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "(TIMESTAMP('1970-01-01', '00:00:00') + {col} SECONDS)"
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        return "'{}'".format(dttm.strftime('%Y-%m-%d-%H.%M.%S'))
+
+
 class SqliteEngineSpec(BaseEngineSpec):
     engine = 'sqlite'
     time_grains = (
@@ -193,7 +222,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         Grain("week", _('week'),
               "DATE({col}, -strftime('%w', {col}) || ' days')"),
         Grain("month", _('month'),
-              "DATE({col}, -strftime('%d', {col}) || ' days')"),
+              "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')"),
     )
 
     @classmethod
@@ -273,8 +302,10 @@ class PrestoEngineSpec(BaseEngineSpec):
     )
 
     @classmethod
-    def sql_preprocessor(cls, sql):
-        return sql.replace('%', '%%')
+    def patch(cls):
+        from pyhive import presto
+        from superset.db_engines import presto as patched_presto
+        presto.Cursor.cancel = patched_presto.cancel
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -322,7 +353,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             full_table_name = "{}.{}".format(schema_name, table_name)
         pql = cls._partition_query(full_table_name)
         col_name, latest_part = cls.latest_partition(
-            table_name, schema_name, database)
+            table_name, schema_name, database, show_first=True)
         return {
             'partitions': {
                 'cols': cols,
@@ -334,6 +365,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
+        logging.info('Polling the cursor for progress')
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
         # if the query is done
@@ -342,15 +374,25 @@ class PrestoEngineSpec(BaseEngineSpec):
         while polled:
             # Update the object and wait for the kill signal.
             stats = polled.get('stats', {})
+
+            query = session.query(type(query)).filter_by(id=query.id).one()
+            if query.status == QueryStatus.STOPPED:
+                cursor.cancel()
+                break
+
             if stats:
                 completed_splits = float(stats.get('completedSplits'))
                 total_splits = float(stats.get('totalSplits'))
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
+                    logging.info(
+                        'Query progress: {} / {} '
+                        'splits'.format(completed_splits, total_splits))
                     if progress > query.progress:
                         query.progress = progress
                     session.commit()
             time.sleep(1)
+            logging.info('Polling the cursor for progress')
             polled = cursor.poll()
 
     @classmethod
@@ -410,7 +452,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return df.to_records(index=False)[0][0]
 
     @classmethod
-    def latest_partition(cls, table_name, schema, database):
+    def latest_partition(cls, table_name, schema, database, show_first=False):
         """Returns col name and the latest (max) partition value for a table
 
         :param table_name: the name of the table
@@ -419,6 +461,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         :type schema: str
         :param database: database query will be run against
         :type database: models.Database
+        :param show_first: displays the value for the first partitioning key
+          if there are many partitioning keys
+        :type show_first: bool
 
         >>> latest_partition('foo_table')
         '2018-01-01'
@@ -427,7 +472,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         if len(indexes[0]['column_names']) < 1:
             raise SupersetTemplateException(
                 "The table should have one partitioned field")
-        elif len(indexes[0]['column_names']) > 1:
+        elif not show_first and len(indexes[0]['column_names']) > 1:
             raise SupersetTemplateException(
                 "The table should have a single partitioned field "
                 "to use this function. You may want to use "
@@ -566,13 +611,17 @@ class HiveEngineSpec(PrestoEngineSpec):
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
         from pyhive import hive
-        print("PATCHED TCLIService {}".format(hive.TCLIService.__file__))
         unfinished_states = (
             hive.ttypes.TOperationState.INITIALIZED_STATE,
             hive.ttypes.TOperationState.RUNNING_STATE,
         )
         polled = cursor.poll()
         while polled.operationState in unfinished_states:
+            query = session.query(type(query)).filter_by(id=query.id)
+            if query.status == QueryStatus.STOPPED:
+                cursor.cancel()
+                break
+
             resp = cursor.fetch_logs()
             if resp and resp.log:
                 progress = cls.progress(resp.log)

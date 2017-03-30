@@ -26,7 +26,6 @@ const propTypes = {
   height: React.PropTypes.string.isRequired,
   database: React.PropTypes.object,
   latestQuery: React.PropTypes.object,
-  networkOn: React.PropTypes.bool,
   tables: React.PropTypes.array.isRequired,
   editorQueries: React.PropTypes.array.isRequired,
   dataPreviewQueries: React.PropTypes.array.isRequired,
@@ -35,7 +34,6 @@ const propTypes = {
 };
 
 const defaultProps = {
-  networkOn: true,
   database: null,
   latestQuery: null,
   hideLeftBar: false,
@@ -83,7 +81,7 @@ class SqlEditor extends React.PureComponent {
     this.props.actions.setActiveSouthPaneTab('Results');
   }
   stopQuery() {
-    this.props.actions.stopQuery(this.props.latestQuery);
+    this.props.actions.postStopQuery(this.props.latestQuery);
   }
   createTableAs() {
     this.startQuery(true, true);
@@ -146,7 +144,7 @@ class SqlEditor extends React.PureComponent {
       );
     }
     const editorBottomBar = (
-      <div className="sql-toolbar clearfix">
+      <div className="sql-toolbar clearfix" id="js-sql-toolbar">
         <div className="pull-left">
           <Form inline>
             <RunQueryActionButton
@@ -190,31 +188,26 @@ class SqlEditor extends React.PureComponent {
                 style={{ height: this.props.height }}
                 queryEditor={this.props.queryEditor}
                 tables={this.props.tables}
-                networkOn={this.props.networkOn}
                 actions={this.props.actions}
               />
             </Col>
           </Collapse>
           <Col md={this.props.hideLeftBar ? 12 : 9}>
-            <div className="scrollbar-container">
-              <div className="scrollbar-content">
-                <AceEditorWrapper
-                  actions={this.props.actions}
-                  onBlur={this.setQueryEditorSql.bind(this)}
-                  queryEditor={this.props.queryEditor}
-                  onAltEnter={this.runQuery.bind(this)}
-                  sql={this.props.queryEditor.sql}
-                  tables={this.props.tables}
-                />
-                {editorBottomBar}
-                <br />
-                <SouthPane
-                  editorQueries={this.props.editorQueries}
-                  dataPreviewQueries={this.props.dataPreviewQueries}
-                  actions={this.props.actions}
-                />
-              </div>
-            </div>
+            <AceEditorWrapper
+              actions={this.props.actions}
+              onBlur={this.setQueryEditorSql.bind(this)}
+              queryEditor={this.props.queryEditor}
+              onAltEnter={this.runQuery.bind(this)}
+              sql={this.props.queryEditor.sql}
+              tables={this.props.tables}
+            />
+            {editorBottomBar}
+            <br />
+            <SouthPane
+              editorQueries={this.props.editorQueries}
+              dataPreviewQueries={this.props.dataPreviewQueries}
+              actions={this.props.actions}
+            />
           </Col>
         </Row>
       </div>

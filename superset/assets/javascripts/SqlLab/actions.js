@@ -24,7 +24,6 @@ export const SET_ACTIVE_SOUTHPANE_TAB = 'SET_ACTIVE_SOUTHPANE_TAB';
 export const ADD_ALERT = 'ADD_ALERT';
 export const REMOVE_ALERT = 'REMOVE_ALERT';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
-export const SET_NETWORK_STATUS = 'SET_NETWORK_STATUS';
 export const RUN_QUERY = 'RUN_QUERY';
 export const START_QUERY = 'START_QUERY';
 export const STOP_QUERY = 'STOP_QUERY';
@@ -142,6 +141,24 @@ export function runQuery(query) {
   };
 }
 
+export function postStopQuery(query) {
+  return function (dispatch) {
+    const stopQueryUrl = '/superset/stop_query/';
+    const stopQueryRequestData = { client_id: query.id };
+    $.ajax({
+      type: 'POST',
+      dataType: 'json',
+      url: stopQueryUrl,
+      data: stopQueryRequestData,
+      success() {
+        if (!query.runAsync) {
+          dispatch(stopQuery(query));
+        }
+      },
+    });
+  };
+}
+
 export function setDatabases(databases) {
   return { type: SET_DATABASES, databases };
 }
@@ -153,10 +170,6 @@ export function addQueryEditor(queryEditor) {
 
 export function cloneQueryToNewTab(query) {
   return { type: CLONE_QUERY_TO_NEW_TAB, query };
-}
-
-export function setNetworkStatus(networkOn) {
-  return { type: SET_NETWORK_STATUS, networkOn };
 }
 
 export function addAlert(alert) {

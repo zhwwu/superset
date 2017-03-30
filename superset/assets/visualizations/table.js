@@ -17,15 +17,10 @@ function tableVis(slice, payload) {
 
   const data = payload.data;
   const fd = slice.formData;
+
   // Removing metrics (aggregates) that are strings
-  const realMetrics = [];
   let metrics = fd.metrics || [];
-  for (const k in data.records[0]) {
-    if (metrics.indexOf(k) > -1 && !isNaN(data.records[0][k])) {
-      realMetrics.push(k);
-    }
-  }
-  metrics = realMetrics;
+  metrics = metrics.filter(m => !isNaN(data.records[0][m]));
 
   function col(c) {
     const arr = [];
@@ -95,7 +90,7 @@ function tableVis(slice, payload) {
         const perc = Math.round((d.val / maxes[d.col]) * 100);
         return (
           `linear-gradient(to right, lightgrey, lightgrey ${perc}%, ` +
-          `rgba(0,0,0,0) ${perc}%`
+          `rgba(0,0,0,0) ${perc}%)`
         );
       }
       return null;

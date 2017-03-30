@@ -25,8 +25,6 @@ from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
 from six import string_types, PY3
-from werkzeug.datastructures import ImmutableMultiDict, MultiDict
-from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
 
 from superset import app, utils, cache
@@ -45,7 +43,6 @@ class BaseViz(object):
     is_timeseries = False
 
     def __init__(self, datasource, form_data, slice_=None):
-        self.orig_form_data = form_data
         if not datasource:
             raise Exception("Viz is missing a datasource")
         self.datasource = datasource
@@ -62,34 +59,6 @@ class BaseViz(object):
 
         self.status = None
         self.error_message = None
-
-    def get_filter_url(self):
-        """Returns the URL to retrieve column values used in the filter"""
-        data = self.orig_form_data.copy()
-        # Remove unchecked checkboxes because HTML is weird like that
-        ordered_data = MultiDict()
-        for key in sorted(data.keys()):
-            # if MultiDict is initialized with MD({key:[emptyarray]}),
-            # key is included in d.keys() but accessing it throws
-            try:
-                if data[key] is False:
-                    del data[key]
-                    continue
-            except IndexError:
-                pass
-
-            if isinstance(data, (MultiDict, ImmutableMultiDict)):
-                v = data.getlist(key)
-            else:
-                v = data.get(key)
-            if not isinstance(v, list):
-                v = [v]
-            for item in v:
-                ordered_data.add(key, item)
-        href = Href(
-            '/superset/filter/{self.datasource.type}/'
-            '{self.datasource.id}/'.format(**locals()))
-        return href(ordered_data)
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
@@ -119,7 +88,8 @@ class BaseViz(object):
         # parsing logic.
         if df is None or df.empty:
             self.status = utils.QueryStatus.FAILED
-            self.error_message = "No data."
+            if not self.error_message:
+                self.error_message = "No data."
             return pd.DataFrame()
         else:
             if DTTM_ALIAS in df.columns:
@@ -135,16 +105,18 @@ class BaseViz(object):
         return df
 
     def get_extra_filters(self):
-        extra_filters = self.form_data.get('extra_filters')
-        if not extra_filters:
-            return {}
-        return json.loads(extra_filters)
+        extra_filters = self.form_data.get('extra_filters', [])
+        return {f['col']: f['val'] for f in extra_filters}
 
     def query_obj(self):
         """Building a query object"""
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or ['count']
+
+        # extra_filters are temporary/contextual filters that are external
+        # to the slice definition. We use those for dynamic interactive
+        # filters like the ones emitted by the "Filter Box" visualization
         extra_filters = self.get_extra_filters()
         granularity = (
             form_data.get("granularity") or form_data.get("granularity_sqla")
@@ -153,13 +125,20 @@ class BaseViz(object):
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
         row_limit = int(
             form_data.get("row_limit") or config.get("ROW_LIMIT"))
+
+        # __form and __to are special extra_filters that target time
+        # boundaries. The rest of extra_filters are simple
+        # [column_name in list_of_values]. `__` prefix is there to avoid
+        # potential conflicts with column that would be named `from` or `to`
         since = (
             extra_filters.get('__from') or form_data.get("since", "1 year ago")
         )
+
         from_dttm = utils.parse_human_datetime(since)
         now = datetime.now()
         if from_dttm > now:
             from_dttm = now - (from_dttm - now)
+
         until = extra_filters.get('__to') or form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
@@ -178,15 +157,14 @@ class BaseViz(object):
         filters = form_data['filters'] if 'filters' in form_data \
                 else []
         for col, vals in self.get_extra_filters().items():
-            if not (col and vals):
+            if not (col and vals) or col.startswith('__'):
                 continue
             elif col in self.datasource.filterable_column_names:
                 # Quote values with comma to avoid conflict
-                vals = ["'{}'".format(x) if "," in x else x for x in vals]
                 filters += [{
                     'col': col,
                     'op': 'in',
-                    'val': ",".join(vals),
+                    'val': vals,
                 }]
         d = {
             'granularity': granularity,
@@ -268,7 +246,6 @@ class BaseViz(object):
                 'cache_timeout': cache_timeout,
                 'data': data,
                 'error': self.error_message,
-                'filter_endpoint': self.filter_endpoint,
                 'form_data': self.form_data,
                 'query': self.query,
                 'status': self.status,
@@ -303,7 +280,6 @@ class BaseViz(object):
         """This is the data object serialized to the js layer"""
         content = {
             'form_data': self.form_data,
-            'filter_endpoint': self.filter_endpoint,
             'token': self.token,
             'viz_name': self.viz_type,
             'filter_select_enabled': self.datasource.filter_select_enabled,
@@ -315,39 +291,8 @@ class BaseViz(object):
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, encoding="utf-8")
 
-    def get_values_for_column(self, column):
-        """
-        Retrieves values for a column to be used by the filter dropdown.
-
-        :param column: column name
-        :return: JSON containing the some values for a column
-        """
-        form_data = self.form_data
-
-        since = form_data.get("since", "1 year ago")
-        from_dttm = utils.parse_human_datetime(since)
-        now = datetime.now()
-        if from_dttm > now:
-            from_dttm = now - (from_dttm - now)
-        until = form_data.get("until", "now")
-        to_dttm = utils.parse_human_datetime(until)
-        if from_dttm > to_dttm:
-            raise Exception("From date cannot be larger than to date")
-
-        kwargs = dict(
-            column_name=column,
-            from_dttm=from_dttm,
-            to_dttm=to_dttm,
-        )
-        df = self.datasource.values_for_column(**kwargs)
-        return df[column].to_json()
-
     def get_data(self, df):
         return []
-
-    @property
-    def filter_endpoint(self):
-        return self.get_filter_url()
 
     @property
     def json_data(self):
@@ -1080,7 +1025,7 @@ class DistributionPieViz(NVD3Viz):
             index=self.groupby,
             values=[self.metrics[0]])
         df.sort_values(by=self.metrics[0], ascending=False, inplace=True)
-        df = self.get_df()
+        df = df.reset_index()
         df.columns = ['x', 'y']
         return df.to_dict(orient="records")
 
@@ -1159,12 +1104,19 @@ class DistributionBarViz(DistributionPieViz):
                 l = [str(s) for s in name[1:]]
                 series_title = ", ".join(l)
             values = []
+            for i, v in ys.iteritems():
+                x = i
+                if isinstance(x, (tuple, list)):
+                    x = ', '.join([str(s) for s in x])
+                else:
+                    x = str(x)
+                values.append({
+                    'x': x,
+                    'y': v,
+                })
             d = {
                 "key": series_title,
-                "values": [
-                    {'x': i, 'y': v}
-                    for i, v in ys.iteritems()
-                ]
+                "values": values,
             }
             chart_data.append(d)
         return chart_data

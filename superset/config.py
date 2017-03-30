@@ -12,6 +12,7 @@ from __future__ import unicode_literals
 import imp
 import json
 import os
+from collections import OrderedDict
 
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
@@ -177,7 +178,10 @@ DRUID_DATA_SOURCE_BLACKLIST = []
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
 # --------------------------------------------------
-DEFAULT_MODULE_DS_MAP = {'superset.models': ['DruidDatasource', 'SqlaTable']}
+DEFAULT_MODULE_DS_MAP = OrderedDict([
+    ('superset.connectors.sqla.models', ['SqlaTable']),
+    ('superset.connectors.druid.models', ['DruidDatasource']),
+])
 ADDITIONAL_MODULE_DS_MAP = {}
 ADDITIONAL_MIDDLEWARE = []
 
@@ -291,14 +295,17 @@ SILENCE_FAB = True
 BLUEPRINTS = []
 
 try:
+
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
         # for case where app is being executed via pex.
+        print('Loaded your LOCAL configuration at [{}]'.format(
+            os.environ[CONFIG_PATH_ENV_VAR]))
         imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
-
-    from superset_config import *  # noqa
-    import superset_config
-    print('Loaded your LOCAL configuration at [{}]'.format(
-        superset_config.__file__))
+    else:
+        from superset_config import *  # noqa
+        import superset_config
+        print('Loaded your LOCAL configuration at [{}]'.format(
+            superset_config.__file__))
 except ImportError:
     pass
